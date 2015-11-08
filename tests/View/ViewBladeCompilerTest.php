@@ -471,6 +471,12 @@ empty
 	}
 
 
+	public function testParentsAreCompiled()
+	{
+		$compiler = new BladeCompiler($this->getFiles(), __DIR__);
+		$this->assertEquals('<?php $__env->appendParent(); ?>', $compiler->compileString('@parent'));
+	}
+
 	public function testYieldsAreCompiled()
 	{
 		$compiler = new BladeCompiler($this->getFiles(), __DIR__);

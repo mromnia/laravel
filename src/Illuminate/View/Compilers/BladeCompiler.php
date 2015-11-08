@@ -704,6 +704,18 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 		return '/(?<!\w)(\s*)@'.$function.'(\s*\(.*\))/';
 	}
 
+
+	/**
+	 * Compile the parent statements into valid PHP.
+	 *
+	 * @param  string  $expression
+	 * @return string
+	 */
+	protected function compileParent($expression)
+	{
+		return '<?php $__env->appendParent(); ?>';
+	}
+
 	/**
 	 * Get the regular expression for a generic Blade function.
 	 *
@@ -743,7 +755,7 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 	 *
 	 * @param  string  $openTag
 	 * @param  string  $closeTag
-	 * @param  bool    $escaped
+	 * @param  bool	$escaped
 	 * @return void
 	 */
 	public function setContentTags($openTag, $closeTag, $escaped = false)

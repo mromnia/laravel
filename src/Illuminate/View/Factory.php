@@ -95,6 +95,13 @@ class Factory implements FactoryContract {
 	protected $renderCount = 0;
 
 	/**
+	 * The marks for @parent section embedding.
+	 *
+	 * @var array
+	 */
+	protected $parentMarks = [];
+
+	/**
 	 * Create a new view factory instance.
 	 *
 	 * @param  \Illuminate\View\Engines\EngineResolver  $engines
@@ -339,7 +346,7 @@ class Factory implements FactoryContract {
 	/**
 	 * Register a view creator event.
 	 *
-	 * @param  array|string     $views
+	 * @param  array|string	 $views
 	 * @param  \Closure|string  $callback
 	 * @return array
 	 */
@@ -421,9 +428,9 @@ class Factory implements FactoryContract {
 	/**
 	 * Register a class based view composer.
 	 *
-	 * @param  string    $view
-	 * @param  string    $class
-	 * @param  string    $prefix
+	 * @param  string	$view
+	 * @param  string	$class
+	 * @param  string	$prefix
 	 * @param  int|null  $priority
 	 * @return \Closure
 	 */
@@ -444,9 +451,9 @@ class Factory implements FactoryContract {
 	/**
 	 * Add a listener to the event dispatcher.
 	 *
-	 * @param  string    $name
+	 * @param  string	$name
 	 * @param  \Closure  $callback
-	 * @param  int      $priority
+	 * @param  int	  $priority
 	 * @return void
 	 */
 	protected function addEventListener($name, $callback, $priority = null)
@@ -559,6 +566,24 @@ class Factory implements FactoryContract {
 	}
 
 	/**
+	 * Create mark for parent section content.
+	 *
+	 * @return void
+	 */
+	public function appendParent()
+	{
+		$last = array_pop($this->sectionStack);
+
+		if (! isset($this->parentMarks[$last])) {
+			$this->parentMarks[$last] = [];
+		}
+
+		array_push($this->parentMarks[$last], ob_get_length());
+
+		$this->sectionStack[] = $last;
+	}
+
+	/**
 	 * Stop injecting content into a section and return its contents.
 	 *
 	 * @return string
@@ -620,12 +645,15 @@ class Factory implements FactoryContract {
 	 */
 	protected function extendSection($section, $content)
 	{
-		if (isset($this->sections[$section]))
-		{
-			$content = str_replace('@parent', $content, $this->sections[$section]);
+		if (isset($this->sections[$section])) {
+			if (isset($this->parentMarks[$section])) {
+				while ($mark = array_pop($this->parentMarks[$section])) {
+					$this->sections[$section] = substr_replace($this->sections[$section], $content, $mark, 0);
+				}
+			}
+		} else {
+			$this->sections[$section] = $content;
 		}
-
-		$this->sections[$section] = $content;
 	}
 
 	/**
@@ -637,18 +665,7 @@ class Factory implements FactoryContract {
 	 */
 	public function yieldContent($section, $default = '')
 	{
-		$sectionContent = $default;
-
-		if (isset($this->sections[$section]))
-		{
-			$sectionContent = $this->sections[$section];
-		}
-
-		$sectionContent = str_replace('@@parent', '--parent--holder--', $sectionContent);
-
-		return str_replace(
-			'--parent--holder--', '@parent', str_replace('@parent', '', $sectionContent)
-		);
+		return isset($this->sections[$section]) ? $this->sections[$section] : $default;
 	}
 
 	/**
@@ -661,6 +678,8 @@ class Factory implements FactoryContract {
 		$this->sections = array();
 
 		$this->sectionStack = array();
+
+		$this->parentMarks = [];
 	}
 
 	/**
@@ -741,8 +760,8 @@ class Factory implements FactoryContract {
 	/**
 	 * Register a valid view extension and its engine.
 	 *
-	 * @param  string    $extension
-	 * @param  string    $engine
+	 * @param  string	$extension
+	 * @param  string	$engine
 	 * @param  \Closure  $resolver
 	 * @return void
 	 */
